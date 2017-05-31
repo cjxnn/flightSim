@@ -1,0 +1,162 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Flight Statistics</title>
+
+<script type="text/javascript" src="{{ STATIC_URL }} /static/jquery-3.2.0.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }} /static/loader.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }} /static/canvasjs.min.js"></script>
+
+<style>
+#lola {
+    background: #99ccff; /*fallback color for browsers that don't support gradients*/
+
+    background-image: -webkit-linear-gradient(to bottom, #FFF7C0, #99ccff);
+    background-image: -moz-linear-gradient(to bottom, #FFF7C0, #99ccff);
+    background-image: -ms-linear-gradient(to bottom, #FFF7C0, #99ccff);
+    background-image: linear-gradient(to bottom, #FFF7C0, #99ccff);
+}
+
+#lola tbody span {
+    float: left;
+    font-size: 120%;
+    font-weight: bold;
+    width: 72%;
+}
+
+#lola tbody b {
+    float: right;
+    padding: 2px 0 0 0;
+}
+
+#lola tbody td {
+    border-bottom: 1px solid #CCC;
+    padding: 0 0 7px 0;
+}
+
+tr {
+    display: table-row;
+    vertical-align: inherit;
+    border-color: inherit;
+}
+
+tbody {
+    display: table-row-group;
+    vertical-align: middle;
+    border-color: inherit;
+}
+
+table {
+    display: table;
+    border-collapse: separate;
+    border-spacing: 2px;
+}
+
+.banner{
+width:670px;
+height: 120px;
+color:#ffff99;
+margin:7px auto;
+padding-left:200px;
+background: url('{{ STATIC_URL }}/static/back.bmp') no-repeat center;
+background-size: 670px 150px;
+font-family: "Arial Narrow";
+}
+
+h2{
+padding-top: 10px;
+font-size: 36px;
+padding:0px;
+margin: 0px;
+line-height:100px;
+text-shadow: 0 -1px 1px rgba(0,0,0,0.25);
+width:310px;
+float:left;
+}
+.slogan{
+color: #ff6666;
+margin:75px 10px -40px 40px;
+font-size: 20px;
+}
+
+</style>
+
+<script type="text/javascript">
+	google.charts.load("current", {packages:["corechart"]});
+      google.charts.setOnLoadCallback(drawChart);
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable([
+          ['time'],
+          {% for time in waitingTimes %}
+			[{{time}}],
+			{% endfor %}
+		  ]);
+		  
+        var options = {
+			title: 'Waiting Times, in seconds',
+			legend: { position: 'none' },
+			colors: ['#e7711c'],
+			histogram: { bucketSize: (Math.ceil({{maxWaitingTime}}) - Math.ceil({{minWaitingTime}})) /8.0 }
+		};
+
+        var chart = new google.visualization.Histogram(document.getElementById('chart_div'));
+        chart.draw(data, options);
+      }
+</script>
+
+  <script type="text/javascript">
+  window.onload = function () {
+    var chart = new CanvasJS.Chart("chartContainer",
+    {
+     title:{
+      text: "Deprature Time v.s. Arrival Time"
+    },
+
+    data: [
+    {
+     type: "scatter",
+     dataPoints: [
+		{% for it in times %}
+			{ x:{{it.0}}, y: {{it.1}} },
+		{% endfor %}
+     ]
+   }
+   ]
+ });
+
+chart.render();
+}
+</script>
+
+</head>
+
+<body>
+<h1> Flight Statistics</h1>
+<div>
+<div id="chart_div" style="width: 900px; height: 500px; float:left;"></div>
+
+<table id="lola" border="0" cellspacing="0" cellpadding="0">      
+<tfoot></tfoot>      
+<tbody>        
+<tr><td><b>Min Waiting Time: </b></td><td colspan="2" id="min"></td></tr>
+<tr><td><b>Max Waiting Time: </b></td><td colspan="2" id="max"></td></tr>      
+</tbody>    
+</table>
+</div>
+
+<script>
+	document.getElementById("min").innerHTML = "<span>" + {{minWaitingTime}}.toFixed(2) + "s</span>";
+	document.getElementById("max").innerHTML = "<span>" + {{maxWaitingTime}}.toFixed(2) + "s</span>";
+</script>
+
+<div id="chartContainer" style="height: 400px; width: 30%;"></div>
+  
+ <div class="banner" style="float:right">
+  <h2>{{r}}</h2>
+  <div class="slogan">Regression Correlation Coefficient</div>
+ </div>
+
+</body>
+
+</html>

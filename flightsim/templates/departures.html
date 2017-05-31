@@ -1,0 +1,86 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Live Departures</title>
+
+<script type="text/javascript" src="{{ STATIC_URL }} /static/jquery-3.2.0.js">
+</script>
+
+<style>
+table { 
+  color: #333;
+  font-family: Helvetica, Arial, sans-serif;
+  width: 640px;
+  /* Table reset stuff */
+  border-collapse: collapse; border-spacing: 0; 
+}
+		
+td, th {  border: 0 none; height: 30px; }
+			
+th {
+  /* Gradient Background */
+	background: linear-gradient(#333 0%,#444 100%);
+	color: #FFF; font-weight: bold;
+	height: 40px;
+}
+		
+td { background: #FAFAFA; text-align: center; }
+
+/* Zebra Stripe Rows */
+		
+tr:nth-child(even) td { background: #EEE; } 
+tr:nth-child(odd) td { background: #FDFDFD; }
+
+/* First-child blank cells! */
+tr td:first-child, tr th:first-child { 
+	background: none; 
+	font-style: italic;
+	font-weight: bold;
+	font-size: 14px;
+	text-align: right;
+	padding-right: 10px;
+	width: 80px; 
+}
+
+/* Add border-radius to specific cells! */
+tr:first-child th:nth-child(2) { 
+  border-radius: 5px 0 0 0; 
+} 
+
+tr:first-child th:last-child { 
+  border-radius: 0 5px 0 0; 
+}
+</style>
+
+</head>
+
+<body>
+<h1> Live Departures</h1>
+
+{% if latest_departures_list %}
+	<table>
+	<tr>
+		<th></th>
+		<th>Flight Number</th>
+		<th>Plane Type</th>
+		<th>Plane Size</th>
+		<th>Departure Time</th>
+	</tr>
+	{% for flight in latest_departures_list %}
+		<tr>
+		<td></td>
+		<td>{{flight.flight_no}}</td>
+		<td>{{flight.plane.name}}</td>
+		<td>{{flight.plane.type}}</td>
+		<td>{{flight.departure_time}}</td>
+		</tr>
+	{% endfor %}
+	</table>
+{% else %}
+	<p>No flights are available.</p>
+{% endif %}
+
+</body>
+
+</html>

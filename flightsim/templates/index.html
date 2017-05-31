@@ -1,0 +1,452 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Flight Simulator</title>
+
+<script type="text/javascript" src="{{ STATIC_URL }} /static/jquery-3.2.0.js">
+</script>
+ 
+<script type="text/javascript" src="{{ STATIC_URL }} /static/Queue.js">
+</script> 
+
+<style>
+body{
+  background: -moz-linear-gradient(-90deg, #ff9900, #cc99ff); /* For Firefox 3.6 to 15 */
+  background: linear-gradient(-90deg, #ff9900, #cc99ff); /* Standard syntax */
+}
+
+h1 {color: red;
+    text-align: center;
+    font-size:70px
+}
+
+#generate {
+	width: 305px;
+	height: 61px;
+	position:relative;
+	left:70%;
+    background: url('{{ STATIC_URL }}/static/generate.jpg') no-repeat;
+}
+
+#generate:hover {
+	width: 305px;
+	height: 61px;
+    background: url('{{ STATIC_URL }}/static/generateH.jpg') no-repeat;
+}
+
+#land {
+	width: 305px;
+	height: 61px;
+	position:relative;
+	left:-10%;
+    background: url('{{ STATIC_URL }}/static/land.jpg') no-repeat;
+}
+
+#land:hover {
+	width: 305px;
+	height: 61px;
+    background: url('{{ STATIC_URL }}/static/landH.jpg') no-repeat;
+}
+
+#sky {
+  width: 1200px;
+  height: 410px;
+  position:absolute;
+  left:400px;
+  top: 260px;
+  background-image: url('{{ STATIC_URL }}/static/runway.jpg');
+  background-repeat: no-repeat;
+  background-size: 800px 410px;
+}
+
+#gate1{
+	position:absolute;
+	left:220px;
+	top: 240px;
+}
+
+#gate2{
+	position:absolute;
+	left:220px;
+	top: 400px;
+}
+
+#gate3{
+	position:absolute;
+	left:220px;
+	top: 560px;
+}
+
+.boeing {
+	width: 70px;
+	height: 50px;
+	position: absolute;
+}
+
+.airbus {
+	width: 70px;
+	height: 50px;
+	position: absolute;
+}
+
+.airbusL {
+	background: url('{{ STATIC_URL }}/static/airbus.bmp');
+	background-repeat: no-repeat;
+	background-size: 70px 50px;
+}
+
+.airbusM {
+	background: url('{{ STATIC_URL }}/static/med.bmp');
+	background-repeat: no-repeat;
+	background-size: 70px 50px;
+}
+
+.airbusS {
+	background: url('{{ STATIC_URL }}/static/crop.bmp');
+	background-repeat: no-repeat;
+	background-size: 70px 50px;
+}
+
+.boeingL {
+	background: url('{{ STATIC_URL }}/static/a.bmp');
+	background-repeat: no-repeat;
+	background-size: 70px 50px;
+}
+
+.boeingM {
+	background: url('{{ STATIC_URL }}/static/m1.bmp');
+	background-repeat: no-repeat;
+	background-size: 70px 50px;
+}
+
+.boeingS {
+	background: url('{{ STATIC_URL }}/static/crop2.bmp');
+	background-repeat: no-repeat;
+	background-size: 70px 50px;
+}
+
+fieldset { 
+	border:1px solid green;
+	width: 100px;
+	height:100px;
+	font:2 sans-serif;
+	background-image: url('{{ STATIC_URL }}/static/jetbridge.jpg');
+	background-repeat: no-repeat;
+	background-size: 120px 100px;
+	z-index: -10;
+}
+
+legend {
+  padding: 0.2em 0.5em;
+  border:1px solid orange;
+  color:blue;
+  font-size:120%;
+  position:relative;
+  left:13%;
+}
+
+div {
+	text-align: center;
+	vertical-align: middle;
+	line-height: 120px;
+	color:white
+}
+
+</style>
+
+<script type="text/javascript">
+var boeing = new Queue();
+var airbus = new Queue();
+
+var leftAir = -50;
+var topAir = 100;
+
+var leftBoe = -50;
+var topBoe = 260;
+
+var gatex = -150;
+var gate1y = 30;
+var gate2y = 190;
+var gate3y = 350;
+
+var planeInterval = 80;
+
+var ready = true;
+
+var timer = 1;
+
+function isLater(flight1, flight2){
+	return compareTime(flight1.departure_time, flight2.departure_time);
+}
+
+function compareTime(times1, times2){
+	time1 = parseFloat(times1[0]);
+	time2 = parseFloat(times2[0]);
+	
+	if (time1 == time2){
+		//base case
+		if (times1.length == 1)
+			return false;
+		//recursive case
+		else
+			return compareTime(times1.slice(1),times2.slice(1));
+	}
+	else{
+		//base case
+		return time1 > time2;
+	}
+}
+
+//gate 1 all planes
+//gate 2 all Boeing planes
+//gate 3 all Airbus planes
+function getGateNo(){
+	var odd = Math.random();
+	
+	return odd < 1.0/3 ? 1 : (odd>2.0/3?3:2);
+}
+
+function getCompany(plane){
+	return plane.name.charAt(0);
+}
+
+function convertPxToInt(px){
+	return parseInt(px.slice(0, px.length - 2));
+}
+
+//Decrypt the string and return the plaintext
+function decrypt(ciphertext){
+	var key = 14;
+	
+	var dictionary = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+	
+	var result = "";
+
+	for (var i = 0, len = ciphertext.length; i < len; i++){
+		l = (dictionary.indexOf(ciphertext[i]) - key + 36) % 36;
+		result += dictionary[l];
+	}
+
+    return result;
+}
+
+function Land() {
+	if (!ready)	return;
+	
+	ready = false;
+
+	var gate_no = getGateNo();
+	var q = null;
+	var planes = null;
+	
+	if (gate_no == 3){
+		if (!airbus.isEmpty){
+			q = airbus;
+			planes = document.getElementById("sky").getElementsByClassName("airbus");
+			leftAir -= planeInterval;
+		}
+		else{
+			alert("No Airbus planes to land!");
+			ready = true;
+			return;
+		}
+	}
+	else if (gate_no == 2){
+		if (!boeing.isEmpty){
+			q = boeing;
+			planes = document.getElementById("sky").getElementsByClassName("boeing");
+			leftBoe -= planeInterval;
+		}
+		else{
+			alert("No Boeing planes to land!");
+			ready = true;
+			return;
+		}
+	}
+	else{
+		if (!airbus.isEmpty){
+			q = airbus;
+			planes = document.getElementById("sky").getElementsByClassName("airbus");
+			leftAir -= planeInterval;
+		}
+		
+		if (!boeing.isEmpty){
+			if (q == null || isLater(q.peek, boeing.peek)){
+				if (q != null) leftAir += planeInterval;
+				
+				q = boeing;
+				planes = document.getElementById("sky").getElementsByClassName("boeing");
+				leftBoe -= planeInterval;
+			}
+		}
+		
+		if (q==null){
+			alert('No planes to land!');
+			ready = true;
+			return;
+		}
+	}
+	
+	var flight = q.dequeue();
+	
+	var x0 = convertPxToInt(planes[0].style.left);
+	var y0 = convertPxToInt(planes[0].style.top);
+  
+	var targetY = 0;
+	if (gate_no == 1)
+		targetY = gate1y;
+	else if (gate_no == 2)
+		targetY = gate2y;
+	else
+		targetY = gate3y;
+  
+	var offset = 0;
+  
+	var id = setInterval(frame, timer);
+	function frame() {
+		if (x0 == gatex && y0 == targetY) {
+			clearInterval(id);
+		} else {
+
+			if (x0 != gatex){
+				diff = gatex - x0;
+				x0 += diff/Math.abs(diff);
+				planes[0].style.left = x0 + 'px';
+			}
+		
+			if (y0 != targetY){
+				diff = targetY - y0;
+				y0 += diff/Math.abs(diff);
+				planes[0].style.top = y0 + 'px';
+			}
+		
+			offset++;
+			if (offset <= planeInterval){
+				for (i = 1; i < planes.length; i++) { 
+					var x = convertPxToInt(planes[i].style.left);
+					planes[i].style.left = x - 1 + 'px';
+				}
+			}
+		}
+	}
+	
+	var ajax = function(){
+		AjaxSetup();
+	
+		$.ajax({
+			type: "POST",
+			url: 'land',
+			data: {
+			  'flight_id': flight.flight_id,
+			  'gate_no': gate_no,
+			},
+			dataType: 'json',
+			success: function (data) {
+			  if (data.successful) {
+				alert("Flight " + flight.flight_no +" landed at Gate " + gate_no + " at " + data.arrival_time + ".");
+			  }
+			  else
+			  {
+				alert("Fatal Error!!!")
+			  }
+			}
+		});
+		
+		planes[0].remove();
+		
+		ready = true;
+	}
+	
+	setTimeout(ajax, 2500);
+}
+
+function Generate() {
+	if (!ready)	return;
+	
+	var sky = document.getElementById("sky");
+	
+    $.ajax({
+        url: 'generate',
+        dataType: 'json',
+        success: function (data) {
+			data.flight_no = decrypt(data.flight_no);
+			var html = "";
+            if (getCompany(data.plane)=='A'){
+                airbus.enqueue(data);
+				leftAir += planeInterval;
+				html += "<div style='left: " + leftAir + "px; top: " + topAir + "px' ";
+				
+				if (data.plane.type == "S")
+					html += "class='airbus airbusS'";
+				else if (data.plane.type == "M")
+					html += "class='airbus airbusM'";
+				else
+					html += "class='airbus airbusL'";
+            }
+            else {
+                boeing.enqueue(data);
+				leftBoe += planeInterval;
+				html += "<div style='left: " + leftBoe + "px; top: " + topBoe + "px' ";
+				
+				if (data.plane.type == "S")
+					html += "class='boeing boeingS'";
+				else if (data.plane.type == "M")
+					html += "class='boeing boeingM'";
+				else
+					html += "class='boeing boeingL'";
+            }
+			
+			sky.innerHTML += html + " >" + data.flight_no + "</div>";
+			
+			ready = true;
+        }
+      });
+}
+
+function AjaxSetup(){
+	$.ajaxSetup({ 
+     beforeSend: function(xhr, settings) {
+         function getCookie(name) {
+             var cookieValue = null;
+             if (document.cookie && document.cookie != '') {
+                 var cookies = document.cookie.split(';');
+                 for (var i = 0; i < cookies.length; i++) {
+                     var cookie = jQuery.trim(cookies[i]);
+                     // Does this cookie string begin with the name we want?
+                     if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                         break;
+                     }
+                 }
+             }
+             return cookieValue;
+         }
+         if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
+             // Only send the token to relative URLs i.e. locally.
+             xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+			}
+		} 
+	});
+}
+
+</script>
+</head>
+
+<body>
+<h1> Plane Simulator</h1>
+
+
+<button onclick="Generate()" id="generate"></button>
+
+<button onclick="Land()" id="land"></button>
+
+<div id="sky" ></div>
+
+<fieldset id="gate1" ><legend>Gate 1</legend></fieldset>
+<fieldset id="gate2" ><legend>Gate 2</legend></fieldset>
+<fieldset id="gate3" ><legend>Gate 3</legend></fieldset>
+
+</body>
+
+</html>
